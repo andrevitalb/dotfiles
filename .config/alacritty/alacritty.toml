@@ -1,0 +1,86 @@
+[general]
+import = [
+  "~/.config/alacritty/themes/themes/coolnight.toml"
+]
+
+#[colors.bright]
+#black = "#343d46"
+#blue = "#6699cc"
+#cyan = "#5fb3b3"
+#green = "#99C794"
+#magenta = "#c594c5"
+#red = "#EC5f67"
+#white = "#d8dee9"
+#yellow = "#FAC863"
+
+#[colors.cursor]
+#cursor = "#ffffff"
+#text = "#1b2b34"
+
+#[colors.normal]
+#black = "#343d46"
+#blue = "#6699cc"
+#cyan = "#5fb3b3"
+#green = "#99C794"
+#magenta = "#c594c5"
+#red = "#EC5f67"
+#white = "#d8dee9"
+#yellow = "#FAC863"
+
+#[colors.primary]
+#background = "#173d52"
+#foreground = "#d8dee9"
+
+[env]
+LANG = "en_US.UTF-8"
+LC_CTYPE = "en_US.UTF-8"
+TERM = "xterm-256color"
+
+[font]
+size = 14
+offset.x = 0
+offset.y = -1
+
+normal.family = "Hack Nerd Font Mono"
+normal.style = "Regular"
+
+bold.family = "Hack Nerd Font Mono"
+bold.style = "Bold"
+
+italic.family = "Hack Nerd Font Mono"
+italic.style = "Italic"
+
+bold_italic.family = "Hack Nerd Font Mono"
+bold_italic.style = "Bold Italic"
+
+[[keyboard.bindings]]
+action = "SpawnNewInstance"
+key = "N"
+mods = "Control"
+
+#chars = "@"
+#key = "Q"
+#mods = "Alt"
+
+[[mouse.bindings]]
+action = "PasteSelection"
+mouse = "Right"
+
+[selection]
+save_to_clipboard = true
+
+[window]
+opacity = 0.60
+blur = true
+
+decorations = "Buttonless"
+
+#option_as_alt="OnlyLeft"
+
+[window.dimensions]
+columns = 90
+lines = 30
+
+[window.padding]
+x = 6
+y = 6
