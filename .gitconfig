@@ -1,0 +1,11 @@
+[user]
+	name = André Vital
+	email = andre@andrevital.com
+[credential]
+	helper = cache
+[pull]
+	rebase = false
+[init]
+	defaultBranch = main
+[core]
+	editor = nano
