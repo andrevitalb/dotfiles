@@ -1,0 +1,4 @@
+alt - c : open -a 'Trae'
+alt - t : open -a 'Alacritty'
+alt - b : open -a 'Brave Browser'
+alt - s : open -a 'Slack'
