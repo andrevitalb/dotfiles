@@ -1,0 +1,8 @@
+# Alacritty theme collection — cloned at install time, only coolnight.toml is active
+.config/alacritty/themes/
+
+# Karabiner-Elements writes timestamped backups here
+.config/karabiner/automatic_backups/
+
+# macOS noise
+.DS_Store
