@@ -20,5 +20,5 @@ fi
 if [ -n "$node_version" ]; then
     echo "$node_version"
 else
-    echo "Node.js in not found"
+    echo "-"
 fi

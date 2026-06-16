@@ -1,10 +1,11 @@
 [user]
 	name = André Vital
 	email = andre@andrevital.com
+	signingkey = ~/.ssh/id_github.pub
 [credential]
 	helper = cache
 [pull]
-	rebase = false
+	rebase = true
 [init]
 	defaultBranch = main
 [core]
@@ -28,3 +29,7 @@
 
 [diff]
     colorMoved = default
+[commit]
+	gpgsign = true
+[gpg]
+	format = ssh
