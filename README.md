@@ -12,7 +12,8 @@ home directory, so installing is a single recursive copy.
 .zshrc .zshenv .bash_profile .p10k.zsh   # shell + prompt
 .gitconfig                               # git identity, delta, SSH commit signing
 .config/alacritty/alacritty.toml         # terminal (imports themes/themes/coolnight.toml)
-.config/tmux/                            # tmux.conf, tmux.reset.conf, scripts/ (cal/node/python)
+.config/tmux/                            # tmux.conf, tmux.reset.conf, scripts/ (cal/node/python/agent)
+.config/shell/project-env.sh             # per-project node/pnpm resolver (shared by .zshrc + tmux)
 .config/karabiner/karabiner.json         # Karabiner-Elements
 .config/bat/themes/                      # tokyonight_night (used by BAT_THEME in .zshrc)
 .config/git/ignore                       # global gitignore

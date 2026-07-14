@@ -118,16 +118,40 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
 autoload -U add-zsh-hook
 
-nvm_auto_switch() {
-  if [[ -f .nvmrc ]]; then
-    nvm use &>/dev/null
-  elif [[ -f .node-version ]]; then
-    nvm use $(cat .node-version) &>/dev/null
+# Per-project Node + pnpm auto-switching. The version resolver is shared with
+# the tmux status widget (~/.config/shell/project-env.sh). Sources, in order:
+#   node: .nvmrc > .node-version > package.json .volta.node
+#   pnpm: package.json .packageManager (pnpm@x) > package.json .volta.pnpm
+# Conflicting versions within one project print a warning (and the first wins).
+[ -r "$HOME/.config/shell/project-env.sh" ] && . "$HOME/.config/shell/project-env.sh"
+
+typeset -g __pe_last_dir=""
+project_auto_switch() {
+  emulate -L zsh
+  # preexec fires before every command; only do the heavy work when the dir changed.
+  [[ "$PWD" == "$__pe_last_dir" ]] && return
+  __pe_last_dir=$PWD
+
+  local nv pv
+  if nv=$(__pe_node_version "$PWD"); then
+    nvm use "$nv" &>/dev/null
+  fi
+
+  if pv=$(__pe_pnpm_version "$PWD"); then
+    # Make sure corepack's pnpm shim is active for the current Node, then pin the version.
+    case "$(command -v pnpm)" in
+      "${NVM_BIN:-$HOME/.nvm}"/*) ;;
+      *) corepack enable pnpm &>/dev/null ;;
+    esac
+    if [[ "$(pnpm --version 2>/dev/null)" != "$pv" ]]; then
+      corepack prepare "pnpm@$pv" --activate &>/dev/null \
+        || print -u2 "project-env: could not activate pnpm@$pv"
+    fi
   fi
 }
 
-add-zsh-hook chpwd nvm_auto_switch
-add-zsh-hook preexec nvm_auto_switch
+add-zsh-hook chpwd project_auto_switch
+add-zsh-hook preexec project_auto_switch
 
 # ---- Pyenv ----
 export PYENV_ROOT="$HOME/.pyenv"
@@ -173,7 +197,7 @@ alias clera="clear"
 alias ws="windsurf"
 
 # Open any folder in VS Code & exit terminal
-codeff() {
+codef() {
 	code "$1" && exit
 }
 
@@ -188,7 +212,7 @@ wsf() {
 }
 
 # General function for simpler updates on editor swapping
-codef() {
+idef() {
   wsf "$1"
 }
 
@@ -211,6 +235,8 @@ alias ga="git add -p"
 alias gcoall="git checkout -- ."
 alias gr="git remote"
 alias gre="git reset"
+
+# export GITHUB_TOKEN=<personal access token for npm package installs, fill in locally>
 
 function current_branch() {
 	current_branch=$(git branch --show-current)
@@ -265,6 +291,24 @@ dc_up() {
   done
 }
 
+# ---- Hermes ----
+alias hermes-pull='rsync -av --delete grid:~/vault/hermes/ ~/Documents/obsidian-vault-claude/hermes/'
+
+# ---- Claude Code ----
+
+# Per-folder account switching
+# Uses a separate config dir (own credentials/settings/sessions) for the titanx
+# work account, selected automatically by the folder claude is launched from.
+claude() {
+  case "$PWD/" in
+    "$HOME/Documents/work_stuff/metalab/titanx/"*)
+      CLAUDE_CONFIG_DIR="$HOME/.claude-titanx" command claude "$@" ;;
+    *)
+      command claude "$@" ;;
+  esac
+}
+
+
 #---------------------------------------------------------------------------------#
 
 # ---------- Custom project commands ----------
@@ -280,11 +324,11 @@ export AV_WEBSITE_PATH=$AV_PATH/andrevital.com
 # Navigate to project
 alias av="cd $AV_WEBSITE_PATH"
 # Open project in code editor
-alias av:code="av; codef ."
+alias av:code="av; idef ."
 # Run /frontend
-alias av:dev:frontend="av; yarn dev:frontend"
+alias av:dev:fe="av; pnpm dev:frontend"
 # Run /backend
-alias av:dev:backend="av; yarn dev:backend"
+alias av:dev:be="av; pnpm dev:backend"
 
 
 ### -- Tatem --
@@ -293,9 +337,13 @@ export TATEM_PATH=$AV_PATH/tatem
 # Navigate to project
 alias tatem="cd $TATEM_PATH"
 # Open project in code editor
-alias tatem:code="tatem; codef ."
+alias t:code="tatem; idef ."
 # Run project
-alias tatem:dev="tatem; pnpm dev"
+alias t:dev="tatem; pnpm dev"
+# Run frontend
+alias t:dev:fe="tatem; pnpm dev:frontend"
+# Run backend
+alias t:dev:be="tatem; pnpm dev:backend"
 
 
 ### -- Meal Tracker --
@@ -304,36 +352,70 @@ export MEAL_TRACKER_PATH=$AV_PATH/meal-tracker
 # Navigate to project
 alias mt="cd $MEAL_TRACKER_PATH"
 # Open project in code editor
-alias mt:code="mt; codef ."
+alias mt:code="mt; idef ."
 # Run project
 alias mt:dev="mt; pnpm dev"
+# Run frontend
+alias mt:dev:fe="mt; pnpm dev:frontend"
+# Run backend
+alias mt:dev:be="mt; pnpm dev:backend"
 
 
 ## ---- Metalab ----
+export ML_PATH=$WORK_PATH/metalab
 
-### -- KnownDating --
-export KD_PATH=$WORK_PATH/metalab/known/monorepo
+
+### -- TitanX --
+export TX_PATH=$ML_PATH/titanx
 
 # Navigate to project 
-alias kd="cd $KD_PATH"
+alias tx="cd $TX_PATH"
 
-# Navigate to mobile app
-alias kd:mobile="kd; cd apps/mobile"
-# Navigate to API app
-alias kd:api="kd; cd apps/api"
+# Navigate to FE app
+alias tx:fe="tx; cd fe"
+# Navigate to UI library
+alias tx:ui="tx; cd ui"
 
-# Clean prebuild mobile project
-alias kd:mobile:prebuild="kd:mobile; pnpm prebuild:ios:clean"
+# Run FE project
+alias tx:dev:fe="tx:fe; pnpm dev"
+# Run UI library (Storybook)
+alias tx:dev:ui="tx:ui; pnpm storybook"
 
-# Connect to database
-alias kd:db="docker exec -it postgres psql -U root -d postgres"
+# Pull from all git repositories
+txpull() {
+    echo -e "\033[36m${bold}TitanX pull:${normal}" && \
+        current_git_pull "$TX_PATH/fe" "FE" && \
+        current_git_pull "$TX_PATH/ui" "UI" && \
+        current_git_pull "$TX_PATH/fonts" "Fonts" && \
+        printf "\nAll done!\n" && \
+	tx
+}
+alias tx:pull="txpull"
 
-# Run project
-alias kd:dev="kd; pnpm dev"
-# Run mobile project
-alias kd:mobile:dev="kd:mobile; pnpm ios"
-# Run API project
-alias kd:api:dev="kd:api; pnpm dev"
+
+# ### -- KnownDating --
+# export KD_PATH=$WORK_PATH/metalab/known/monorepo
+
+# # Navigate to project 
+# alias kd="cd $KD_PATH"
+
+# # Navigate to mobile app
+# alias kd:mobile="kd; cd apps/mobile"
+# # Navigate to API app
+# alias kd:api="kd; cd apps/api"
+
+# # Clean prebuild mobile project
+# alias kd:mobile:prebuild="kd:mobile; pnpm prebuild:ios:clean"
+
+# # Connect to database
+# alias kd:db="docker exec -it postgres psql -U root -d postgres"
+
+# # Run project
+# alias kd:dev="kd; pnpm dev"
+# # Run mobile project
+# alias kd:mobile:dev="kd:mobile; pnpm ios"
+# # Run API project
+# alias kd:api:dev="kd:api; pnpm dev"
 
 # Pull from all git repositories
 # kdpull() {
@@ -357,7 +439,7 @@ alias kd:api:dev="kd:api; pnpm dev"
 # # Navigate to fe project
 # alias l:fe="lobby; cd fe"
 # # Open frontend project in code editor
-# alias l:fe:code="l:fe; codef ."
+# alias l:fe:code="l:fe; idef ."
 # # Run frontend project
 # alias l:fe:start="l:fe; pnpm dev"
 # # Run frontend tests
@@ -366,7 +448,7 @@ alias kd:api:dev="kd:api; pnpm dev"
 # # Navigate to backend project
 # alias l:be="lobby; cd be"
 # # Open backend project in code editor
-# alias l:be:code="l:be; codef ."
+# alias l:be:code="l:be; idef ."
 # # Run backend project
 # alias l:be:start="l:be; pnpm generate; pnpm build:packages; cd apps/api; pnpm start:dev"
 # # Start required BE docker containers
@@ -393,7 +475,7 @@ alias kd:api:dev="kd:api; pnpm dev"
 # # Navigate to admin project
 # alias ml:admin="ml; cd admin"
 # # Open admin project in code editor
-# alias ml:admin:code="ml:admin; codef ."
+# alias ml:admin:code="ml:admin; idef ."
 # # Run admin project
 # alias ml:admin:start="ml:admin; npm start"
 # # Run admin tests
@@ -403,7 +485,7 @@ alias kd:api:dev="kd:api; pnpm dev"
 # # Navigate to web project
 # alias ml:web="ml; cd web"
 # # Open web project in code editor
-# alias ml:web:code="ml:web; codef ."
+# alias ml:web:code="ml:web; idef ."
 # # Run web project
 # alias ml:web:start="ml:web; yarn dev"
 
@@ -411,7 +493,7 @@ alias kd:api:dev="kd:api; pnpm dev"
 # # Navigate to app project
 # alias ml:app="ml; cd app"
 # # Open app project in code editor
-# alias ml:app:code="ml:app; codef ."
+# alias ml:app:code="ml:app; idef ."
 # # Run app project
 # alias ml:app:start="ml:app; yarn start"
 # # Run iOS app
@@ -432,7 +514,7 @@ alias kd:api:dev="kd:api; pnpm dev"
 # # Navigate to backend project
 # alias ml:be="ml; cd backend"
 # # Open backend project in code editor
-# alias ml:be:code="ml:be; codef ."
+# alias ml:be:code="ml:be; idef ."
 # # Run backend project
 # alias ml:be:start="ml:be; pipenv shell; make run_local; make run"
 
@@ -440,13 +522,13 @@ alias kd:api:dev="kd:api; pnpm dev"
 # # Navigate to report server project
 # alias ml:rs="ml; cd report-server"
 # # Open report server project in code editor
-# alias ml:rs:code="ml:rs; codef ."
+# alias ml:rs:code="ml:rs; idef ."
 
 
 # # Navigate to tests project
 # alias ml:tests="ml; cd taf"
 # # Open tests project in code editor
-# alias ml:tests:code="ml:tests; codef ."
+# alias ml:tests:code="ml:tests; idef ."
 
 
 # # Pull from all git repositories
@@ -462,4 +544,3 @@ alias kd:api:dev="kd:api; pnpm dev"
 # 	ml
 # }
 # alias ml:pull="mlpull"
-

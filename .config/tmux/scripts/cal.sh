@@ -9,7 +9,7 @@ MAX_TITLE_LEN=21
 get_attendees() {
 	attendees=$(
 	icalBuddy \
-		--includeCals "Metalab,Personal" \
+		--includeCals "Metalab,Personal,TitanX" \
 		--includeEventProps "attendees" \
 		--propertyOrder "datetime,title" \
 		--noCalendarNames \
@@ -33,7 +33,7 @@ parse_attendees() {
 
 get_next_meeting() {
 	next_meeting=$(icalBuddy \
-		--includeCals "Metalab,Personal" \
+		--includeCals "Metalab,Personal,TitanX" \
 		--includeEventProps "title,datetime" \
 		--propertyOrder "datetime,title" \
 		--noCalendarNames \
@@ -51,7 +51,7 @@ get_next_next_meeting() {
 	tonight=$(date +"%Y-%m-%d 23:59:00 %z")
 	next_next_meeting=$(
 	icalBuddy \
-		--includeCals "Metalab,Personal" \
+		--includeCals "Metalab,Personal,TitanX" \
 		--includeEventProps "title,datetime" \
 		--propertyOrder "datetime,title" \
 		--noCalendarNames \
@@ -81,11 +81,10 @@ parse_result() {
 }
 
 # Determine which calendar the selected meeting belongs to.
-# Returns "ML" for Metalab, "P" for Personal (default).
-get_source() {
-	local times
-	times=$(icalBuddy \
-		--includeCals "Metalab" \
+# Returns "TX" for TitanX, "ML" for Metalab, "P" for Personal (default).
+cal_times() {
+	icalBuddy \
+		--includeCals "$1" \
 		--includeEventProps "datetime" \
 		--noCalendarNames \
 		--includeOnlyEventsFromNowOn \
@@ -93,8 +92,13 @@ get_source() {
 		--excludeEndDates \
 		--bullet "" \
 		--limitItems 10 \
-		eventsToday 2>/dev/null | grep -oE '[0-9]{1,2}:[0-9]{2}')
-	if printf '%s\n' "$times" | grep -qx "$1"; then
+		eventsToday 2>/dev/null | grep -oE '[0-9]{1,2}:[0-9]{2}'
+}
+
+get_source() {
+	if cal_times "TitanX" | grep -qx "$1"; then
+		echo "TX"
+	elif cal_times "Metalab" | grep -qx "$1"; then
 		echo "ML"
 	else
 		echo "P"
@@ -140,7 +144,7 @@ display_popup() {
 	popup_lock="/tmp/tmux_meeting_popup.lock"
 
 	if [[ ! -f "$popup_lock" ]]; then
-		printf -v cmd 'icalBuddy --includeCals "Metalab,Personal" --propertyOrder "datetime,title" --noCalendarNames --formatOutput --includeEventProps "title,datetime,notes,url,attendees" --includeOnlyEventsFromNowOn --limitItems 1 --excludeAllDayEvents eventsToday'
+		printf -v cmd 'icalBuddy --includeCals "Metalab,Personal,TitanX" --propertyOrder "datetime,title" --noCalendarNames --formatOutput --includeEventProps "title,datetime,notes,url,attendees" --includeOnlyEventsFromNowOn --limitItems 1 --excludeAllDayEvents eventsToday'
 
 		tmux display-popup \
 				-S 'fg=#eba0ac' \
