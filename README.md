@@ -12,7 +12,7 @@ home directory, so installing is a single recursive copy.
 .zshrc .zshenv .bash_profile .p10k.zsh   # shell + prompt
 .gitconfig                               # git identity, delta, SSH commit signing
 .config/alacritty/alacritty.toml         # terminal (imports themes/themes/coolnight.toml)
-.config/tmux/                            # tmux.conf, tmux.reset.conf, scripts/ (cal/node/python/agent)
+.config/tmux/                            # tmux.conf, tmux.reset.conf, scripts/ (cal/versions/agent), custom/ (catppuccin modules)
 .config/shell/project-env.sh             # per-project node/pnpm resolver (shared by .zshrc + tmux)
 .config/karabiner/karabiner.json         # Karabiner-Elements
 .config/bat/themes/                      # tokyonight_night (used by BAT_THEME in .zshrc)
@@ -84,6 +84,14 @@ Start tmux, then press <kbd>^</kbd>+<kbd>s</kbd> <kbd>I</kbd> to install the res
 (tmux-sensible, resurrect, continuum, tmux-thumbs, tmux-fzf, tmux-fzf-url,
 catppuccin-tmux, sessionx, floax). Reload with <kbd>^</kbd>+<kbd>s</kbd> <kbd>R</kbd>.
 The tmux prefix is <kbd>^</kbd>+<kbd>s</kbd>.
+
+Then link the custom catppuccin status modules (versions, agent) into the plugin
+(the plugin only loads modules from its own `custom/` dir; redo this if the
+plugin is ever reinstalled):
+
+```zsh
+ln -sf ~/.config/tmux/custom/*.sh ~/.config/tmux/plugins/catppuccin-tmux/custom/
+```
 
 ### 7. Alacritty theme collection
 
